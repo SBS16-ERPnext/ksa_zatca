@@ -45,7 +45,9 @@ async function set_zatca_integration_status(frm) {
         } else if (["Rejected", "Resend"].includes(status)) {
             color = "red"
         }
-        frm.set_intro(`<b>Zatca Status: ${status}</b>`, color)
+        var link = `/app/sales-invoice-additional-fields/${res.zatca_invoice_docname}`;
+        frm.set_intro(`Zatca: <span style='color: ${color};'>${status}</span> <a href='${link}' target='_blank' style='font-weight: bold; text-decoration: none;'>(${res.zatca_invoice_docname})</a>`, color)
+
     }
 }
 

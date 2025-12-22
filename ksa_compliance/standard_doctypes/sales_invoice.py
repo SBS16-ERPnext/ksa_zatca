@@ -123,23 +123,22 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice, metho
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
-    valid = True
+    error_list = []
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
+    
+    # Validate taxes
     if ZATCAPhase1BusinessSettings.is_enabled_for_company(self.company) or is_phase_2_enabled_for_company:
         if len(self.taxes) == 0:
-            frappe.msgprint(
-                msg=_('Please include tax rate in Sales Taxes and Charges Table'),
-                title=_('Validation Error'),
-                indicator='red',
-            )
-            valid = False
+            error_list.append(_('Please include tax rate in Sales Taxes and Charges Table'))
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
+        
+        # Validate B2B customer
         if settings.type_of_business_transactions == 'Standard Tax Invoices':
             customer = cast(Customer, frappe.get_doc('Customer', self.customer))
             if not is_b2b_customer(customer):
-                frappe.msgprint(
+                error_list.append(
                     ft(
                         'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
                         'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
@@ -147,9 +146,54 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                         customer=self.customer,
                     )
                 )
-                valid = False
+        
+        # Validate customer address for non-B2C customers
+        customer = cast(Customer, frappe.get_doc('Customer', self.customer))
+        if not customer.get('custom_b2c'):
+            # Get customer address
+            address = None
+            if self.customer_address:
+                address = frappe.get_doc('Address', self.customer_address)
+            elif customer.get('customer_primary_address'):
+                address = frappe.get_doc('Address', customer.customer_primary_address)
+            
+            if not address:
+                error_list.append(_('Customer address is mandatory for non-B2C customers as per ZATCA regulations'))
+            else:
+                # Validate all required address fields
+                if not address.address_line1:
+                    error_list.append(_('Address Line 1 is required in customer address'))
+                
+                if not address.get('address_line2'):
+                    error_list.append(_('Address Line 2 is required in customer address'))
+                
+                if not address.get('custom_building_number'):
+                    error_list.append(_('Building Number is required in customer address'))
+                elif len(str(address.get('custom_building_number'))) != 4:
+                    error_list.append(_('Building Number must be exactly 4 digits in customer address'))
+                
+                if not address.city:
+                    error_list.append(_('City is required in customer address'))
+                
+                if not address.pincode:
+                    error_list.append(_('Postal Code is required in customer address'))
+                elif len(str(address.pincode)) != 5:
+                    error_list.append(_('Postal Code must be exactly 5 digits in customer address'))
+                
+                if not address.get('custom_area'):
+                    error_list.append(_('District is required in customer address'))
+        
+        # Validate items have tax category
+        for item in self.items:
+            if not item.get('custom_zatca_item_tax_category'):
+                error_list.append(
+                    _('ZATCA Tax Category is required for item: {0}').format(item.item_code)
+                )
 
-    if not valid:
-        message_log = frappe.get_message_log()
-        error_messages = '\n'.join(log['message'] for log in message_log)
-        raise frappe.ValidationError(error_messages)
+    if error_list:
+        # Format all errors as a single message
+        error_messages = '<br><br>'.join(f'• {msg}' for msg in error_list)
+        frappe.throw(
+            msg=f'<div style="text-align: left;">{error_messages}</div>',
+            title=_('ZATCA Validation Errors')
+        )

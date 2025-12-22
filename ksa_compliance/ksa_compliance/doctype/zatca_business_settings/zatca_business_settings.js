@@ -143,8 +143,6 @@ frappe.ui.form.on("ZATCA Business Settings", {
 
         frappe.prompt(fields, values => {
             frappe.call({
-                freeze: true,
-                freeze_message: 'Please wait...',
                 method: "ksa_compliance.compliance_checks.perform_compliance_checks",
                 args: {
                     business_settings_id: frm.doc.name,
@@ -153,6 +151,20 @@ frappe.ui.form.on("ZATCA Business Settings", {
                     item_id: values.item_id,
                     tax_category_id: values.tax_category_id,
                 },
+                callback: function () {
+                    frappe.show_alert({
+                        message: __("Compliance check started. Progress will appear shortly."),
+                        indicator: "blue"
+                    });
+                },
+                error: function (err) {
+                    frappe.hide_progress();
+                    frappe.msgprint({
+                        title: __("Compliance Error"),
+                        message: err.message || __("Failed to start compliance checks"),
+                        indicator: "red"
+                    });
+                }
             });
         });
     },
@@ -263,3 +275,31 @@ function add_create_business_settings_button(frm) {
         });
     });
 }
+
+// Listen for realtime progress updates from compliance checks
+frappe.realtime.on("progress", (data) => {
+    if (!data) return;
+
+    frappe.show_progress(
+        data.title || __("Processing"),
+        data.percent || 0,
+        100,
+        data.description || __("Processing…")
+    );
+
+    if (data.percent >= 100) {
+        setTimeout(() => frappe.hide_progress(), 1500);
+    }
+});
+
+// Listen for realtime msgprint messages from compliance checks
+frappe.realtime.on("msgprint", (data) => {
+    if (!data) return;
+
+    frappe.msgprint({
+        title: data.title || __("Compliance Result"),
+        message: data.message || data.msg || "",
+        indicator: data.indicator || "blue"
+    });
+});
+

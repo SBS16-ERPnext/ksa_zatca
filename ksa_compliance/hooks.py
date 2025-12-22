@@ -144,12 +144,12 @@ after_install = 'ksa_compliance.setup.after_install'
 doc_events = {
     'Sales Invoice': {
         'on_submit': 'ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype',
-        'validate': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
+        'before_submit': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
         'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
     },
     'POS Invoice': {
         'on_submit': 'ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype',
-        'validate': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
+        'before_submit': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
         'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
     },
     'Payment Entry': {
@@ -159,6 +159,9 @@ doc_events = {
     },
     'Branch': {
         'validate': 'ksa_compliance.standard_doctypes.branch.validate_branch',
+    },
+    'SConfigs': {
+        'on_update': 'ksa_compliance.ksa_compliance.workspace_utils.apply_zatca_workspace_visibility',
     },
 }
 
@@ -215,6 +218,10 @@ scheduler_events = {'hourly_long': ['ksa_compliance.background_jobs.sync_e_invoi
 # ----------------
 # before_request = ["ksa_compliance.utils.before_request"]
 # after_request = ["ksa_compliance.utils.after_request"]
+
+# Session Events
+# ----------------
+on_session_creation = ["ksa_compliance.ksa_compliance.workspace_utils.apply_zatca_workspace_visibility"]
 
 # Job Events
 # ----------

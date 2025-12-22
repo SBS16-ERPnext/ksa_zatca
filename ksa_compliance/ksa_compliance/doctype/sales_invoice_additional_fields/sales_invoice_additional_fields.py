@@ -728,10 +728,12 @@ def is_b2b_customer(customer: Customer) -> bool:
 
 @frappe.whitelist()
 def get_zatca_integration_status(invoice_id: str, doctype: Literal['Sales Invoice', 'POS Invoice', 'Payment Entry']):
-    integration_status = frappe.db.get_value(
+    result = frappe.db.get_value(
         'Sales Invoice Additional Fields',
         {'sales_invoice': invoice_id, 'invoice_doctype': doctype, 'is_latest': 1},
-        'integration_status',
+        ['integration_status', 'name'],
+        as_dict=True
     )
 
-    frappe.response['integration_status'] = integration_status or ''
+    frappe.response['integration_status'] = result.get('integration_status', '') if result else ''
+    frappe.response['zatca_invoice_docname'] = result.get('name', '') if result else ''
