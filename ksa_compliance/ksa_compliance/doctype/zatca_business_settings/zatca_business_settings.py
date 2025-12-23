@@ -46,6 +46,7 @@ class ZATCABusinessSettings(Document):
         account_name: DF.Data | None
         account_number: DF.Data | None
         additional_street: DF.Data | None
+        auto_submit_to_zatca: DF.Check
         automatic_vat_account_configuration: DF.Check
         block_invoice_on_invalid_xml: DF.Check
         building_number: DF.Data | None

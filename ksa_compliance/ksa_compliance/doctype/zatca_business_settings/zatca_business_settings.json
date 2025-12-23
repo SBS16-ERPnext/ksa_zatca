@@ -16,6 +16,7 @@
   "country_code",
   "enable_zatca_integration",
   "sync_with_zatca",
+  "auto_submit_to_zatca",
   "type_of_business_transactions",
   "currency",
   "column_break_kjzc",
@@ -193,6 +194,13 @@
    "fieldtype": "Select",
    "label": "Sync with ZATCA",
    "options": "Live\nBatches"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_submit_to_zatca",
+   "fieldtype": "Check",
+   "label": "Auto Submit to ZATCA",
+   "description": "If enabled, invoices will be automatically submitted to ZATCA upon submission. If disabled, you need to manually submit using the 'Send to ZATCA' button in the invoice."
   },
   {
    "fieldname": "tab_break_ljdo",

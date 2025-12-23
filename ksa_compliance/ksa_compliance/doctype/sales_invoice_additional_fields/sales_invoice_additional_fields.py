@@ -105,6 +105,7 @@ class SalesInvoiceAdditionalFields(Document):
         invoice_line_charge_percentage: DF.Percent
         invoice_type_code: DF.Data | None
         invoice_type_transaction: DF.Data | None
+        invoice_type: DF.Literal['B2B', 'B2C'] | None
         invoice_xml: DF.LongText | None
         is_latest: DF.Check
         last_attempt: DF.Datetime | None
@@ -197,6 +198,7 @@ class SalesInvoiceAdditionalFields(Document):
         self._set_buyer_details(buyer_doc, invoice_type)
         self.sum_of_charges = self._compute_sum_of_charges(sales_invoice.taxes)
         self.invoice_type_transaction = '0100000' if invoice_type == 'Standard' else '0200000'
+        self.invoice_type = 'B2B' if invoice_type == 'Standard' else 'B2C'
         self.invoice_type_code = self._get_invoice_type_code(sales_invoice)
         self.payment_means_type_code = self._get_payment_means_type_code(sales_invoice)
 

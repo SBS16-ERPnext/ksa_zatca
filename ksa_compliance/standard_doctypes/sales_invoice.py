@@ -28,6 +28,57 @@ from ksa_compliance.translation import ft
 IGNORED_INVOICES = set()
 
 
+@frappe.whitelist()
+def send_invoice_to_zatca(invoice_name: str, doctype: str = 'Sales Invoice'):
+    """
+    Manually send an invoice to ZATCA.
+    This is used when auto_submit_to_zatca is disabled.
+    """
+    if not frappe.has_permission(doctype, 'write', invoice_name):
+        frappe.throw(_("Not permitted to send this invoice to ZATCA"))
+    
+    # Get the Sales Invoice Additional Fields document
+    filters = {
+        'invoice_doctype': doctype,
+        'sales_invoice': invoice_name,
+        'is_latest': 1
+    }
+    
+    additional_fields = frappe.get_all(
+        'Sales Invoice Additional Fields',
+        filters=filters,
+        fields=['name', 'docstatus', 'integration_status'],
+        order_by='creation desc',
+        limit=1
+    )
+    
+    if not additional_fields:
+        frappe.throw(_("ZATCA Additional Fields not found for this invoice. Please ensure the invoice is submitted."))
+    
+    additional_field_doc = frappe.get_doc('Sales Invoice Additional Fields', additional_fields[0].name)
+    
+    # Check if already submitted successfully
+    if additional_field_doc.integration_status in ['Accepted', 'Accepted with warnings']:
+        status_msg = _("This invoice has already been accepted by ZATCA")
+        if additional_field_doc.integration_status == 'Accepted with warnings':
+            status_msg = _("This invoice has already been accepted by ZATCA with warnings")
+        frappe.msgprint(status_msg, indicator='blue')
+        return {'status': 'already_submitted', 'message': status_msg}
+    logger.info(f'Manually submitting {additional_field_doc.name} to ZATCA')
+    result = additional_field_doc.submit_to_zatca()
+    
+    if is_ok(result):
+        message = result.ok_value
+        logger.info(f'Manual submission successful: {message}')
+        frappe.msgprint(_(f"Successfully submitted to ZATCA: {message}"), indicator='green')
+        return {'status': 'success', 'message': message}
+    else:
+        error = result.err_value
+        logger.error(f'Manual submission failed: {error}')
+        frappe.msgprint(_(f"Failed to submit to ZATCA: {error}"), indicator='red')
+        return {'status': 'error', 'message': error}
+
+
 def ignore_additional_fields_for_invoice(name: str) -> None:
     global IGNORED_INVOICES
     IGNORED_INVOICES.add(name)
@@ -79,7 +130,11 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
-    if is_live_sync:
+    
+    # Check if auto submit is enabled
+    auto_submit = settings.auto_submit_to_zatca if hasattr(settings, 'auto_submit_to_zatca') else True
+    
+    if is_live_sync and auto_submit:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
         # the invoice submits successfully after on_submit is run successfully from all apps.
         frappe.utils.background_jobs.enqueue(
