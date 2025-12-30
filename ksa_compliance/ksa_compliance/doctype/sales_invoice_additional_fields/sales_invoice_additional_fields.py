@@ -175,7 +175,12 @@ class SalesInvoiceAdditionalFields(Document):
         return 'Simplified'
 
     def before_insert(self):
-        self.integration_status = 'Ready For Batch'
+        settings = ZATCABusinessSettings.for_invoice(self.sales_invoice, self.invoice_doctype)
+        if settings and hasattr(settings, 'auto_submit_to_zatca') and not settings.auto_submit_to_zatca:
+            self.integration_status = ''
+        else:
+            self.integration_status = "Ready For Batch"
+
         self.is_latest = True
         # Mark any pre-existing sales invoice additional fields as no longer being latest
         frappe.db.set_value('Sales Invoice Additional Fields', {'sales_invoice': self.sales_invoice}, 'is_latest', 0)
