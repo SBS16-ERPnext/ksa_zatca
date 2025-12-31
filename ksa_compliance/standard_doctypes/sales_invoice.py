@@ -195,8 +195,8 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             if not is_b2b_customer(customer):
                 error_list.append(
                     ft(
-                        'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
-                        'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
+                        'Company <b>$company</b> uses Standard Tax Invoices(B2B). '
+                        'Customer <b>$customer</b> must have a VAT or one of the other IDs.',
                         company=self.company,
                         customer=self.customer,
                     )
