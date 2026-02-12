@@ -26,6 +26,12 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
 from ksa_compliance.translation import ft
 
 IGNORED_INVOICES = set()
+SKIP_VALIDATION = False
+
+
+def set_skip_validation(skip: bool) -> None:
+    global SKIP_VALIDATION
+    SKIP_VALIDATION = skip
 
 
 @frappe.whitelist()
@@ -195,6 +201,9 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice, metho
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
+    if SKIP_VALIDATION:
+        return
+
     error_list = []
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     
@@ -238,13 +247,13 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             if not crn_value:
                 error_list.append(_('B2B Customer CRN (Commercial Registration Number) is mandatory for Standard Tax Invoices'))
             
-            if not nat_value:
-                error_list.append(_('B2B Customer NAT (National ID) is mandatory for Standard Tax Invoices'))
+            # if not nat_value:
+            #     error_list.append(_('B2B Customer NAT (National ID) is mandatory for Standard Tax Invoices'))
         
         # Validate formats if values exist
         _validate_buyer_vat_format(buyer_vat, error_list)
         _validate_buyer_crn_format(crn_value, error_list)
-        _validate_buyer_nat_format(nat_value, error_list)
+        # _validate_buyer_nat_format(nat_value, error_list)
         
         # BR-KSA-56: Credit/Debit note validation
         if self.is_return and not self.custom_return_against_additional_references:

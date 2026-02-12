@@ -16,6 +16,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
 from ksa_compliance.standard_doctypes.sales_invoice import (
     ignore_additional_fields_for_invoice,
     clear_additional_fields_ignore_list,
+    set_skip_validation,
 )
 from ksa_compliance.translation import ft
 
@@ -121,6 +122,7 @@ def _perform_compliance_checks(
     progress_per_step = 100.0 / num_steps
     progress = 0.0
 
+    set_skip_validation(True)
     has_error = False
     try:
         settings = cast(ZATCABusinessSettings, frappe.get_doc('ZATCA Business Settings', business_settings_id))
@@ -168,6 +170,7 @@ def _perform_compliance_checks(
         if not has_error:
             _report_progress(ft('Done'), 100)
         clear_additional_fields_ignore_list()
+        set_skip_validation(False)
         logger.info('Rolling back')
         frappe.db.rollback()
 
