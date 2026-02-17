@@ -247,6 +247,10 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             if not crn_value:
                 error_list.append(_('B2B Customer CRN (Commercial Registration Number) is mandatory for Standard Tax Invoices'))
             
+            # Address validation is mandatory for all customers b2b
+            _validate_customer_address(self, customer, error_list)
+
+            
             # if not nat_value:
             #     error_list.append(_('B2B Customer NAT (National ID) is mandatory for Standard Tax Invoices'))
         
@@ -260,9 +264,6 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             error_list.append(
                 _('[BR-KSA-56] For credit/debit notes, the billing reference ID (return against) is mandatory')
             )
-        
-        # Validate customer address (ALWAYS REQUIRED)
-        _validate_customer_address(self, customer, error_list)
         
         # Validate items have tax category
         _validate_item_tax_categories(self.items, error_list)
@@ -383,9 +384,6 @@ def _validate_customer_address(invoice: SalesInvoice | POSInvoice, customer: Cus
     if not address.address_line1:
         error_list.append(_('Address Line 1 (Street Name) is required in customer address'))
     
-    if not address.get('address_line2'):
-        error_list.append(_('Address Line 2 (Additional Street) is required in customer address'))
-    
     # BR-KSA-37: Building number validation (4 digits)
     if not address.get('custom_building_number'):
         error_list.append(_('[BR-KSA-37] Buyer address building number is required'))
@@ -420,9 +418,6 @@ def _validate_customer_address(invoice: SalesInvoice | POSInvoice, customer: Cus
             error_list.append(
                 _('Postal Code must contain only digits. Current: "{0}"').format(postal_code)
             )
-    
-    if not address.get('custom_area'):
-        error_list.append(_('District is required in customer address'))
 
 
 def _validate_item_tax_categories(items: list, error_list: list) -> None:
